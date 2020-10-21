@@ -9,11 +9,13 @@ from matplotlib import pyplot as plt
 import group
 import sys
 
+path = "/mnt/c/Users/scamb/Documents/uob_msc/Genome_data/OG_arb-fal/gr_outputs/gr_"
+
 # Creates sets of each group's total proteome (identified by OG numbers).
 # sys.args must be valid eukaryote group names in dataset (include caps).
-group1 = set(group.count_ogs("gr_outputs/gr_" + sys.argv[1] + ".txt"))
-group2 = set(group.count_ogs("gr_outputs/gr_" + sys.argv[2] + ".txt"))
-group3 = set(group.count_ogs("gr_outputs/gr_" + sys.argv[3] + ".txt"))
+group1 = set(group.count_ogs(path + sys.argv[1] + ".txt"))
+group2 = set(group.count_ogs(path + sys.argv[2] + ".txt"))
+group3 = set(group.count_ogs(path + sys.argv[3] + ".txt"))
 
 # Add _unweighted to venn3 function to balance the resulting circles (regardless of data).
 venn3([group1, group2, group3], (sys.argv[1], sys.argv[2], sys.argv[3]))
