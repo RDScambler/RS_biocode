@@ -64,31 +64,32 @@ with open(file, 'w') as f:
     for record in records:
         for annotation in annotation_list:
 
-            # Pass to avoid KeyError.
+            # Use continue to avoid KeyError.
             if 'annotation' not in annotation.keys():
                 continue 
             elif record.id == annotation['annotation']['genes'][0]['cds'][0]['protein']['accessionVersion']:
-                    loc = annotation['location']['geographicLocation']
-                    date = annotation['isolate']['collectionDate']
+                loc = annotation['location']['geographicLocation']
+                date = annotation['isolate']['collectionDate']
+     
+                # Filter by region and date.
+                # Write to file to be aligned.
+                # Append IDs to date lists in order to check seq group sizes (i.e. length of date lists).
+                if len(sys.argv) > 1:
+                    if sys.argv[1] in loc and date_boundaries[0] < date < date_boundaries[1]:
+                        SeqIO.write(record, f, 'fasta')
+                        date_1.append(record.id)
+                    elif sys.argv[1] in loc and date_boundaries[2] < date < date_boundaries[3]:
+                        SeqIO.write(record, f, 'fasta')
+                        date_2.append(record.id)
 
-                    # Filter by date.
-                    # Tag seq ID with its collection date.
-                    # Write to file to be aligned.
-                    if date_boundaries[0] < date < date_boundaries[1] or date_boundaries[2] < date < date_boundaries[3]:
-                        if date_boundaries[0] < date < date_boundaries[1]:
-                            date_1.append(record.id)
-                        elif date_boundaries[2] < date < date_boundaries[3]:
-                            date_2.append(record.id)
-                        
-                        # Filter by region.
-                        if len(sys.argv) > 1:
-                            if sys.argv[1] in loc:
-                                record.id = record.id + '_' + date
-                                SeqIO.write(record, f, 'fasta')
+                # If no region specified in sys.argv[1], filter only by date.
+                elif date_boundaries[0] < date < date_boundaries[1] or date_boundaries[2] < date < date_boundaries[3]:
+                    if date_boundaries[0] < date < date_boundaries[1]:
+                        date_1.append(record.id)
+                    elif date_boundaries[2] < date < date_boundaries[3]:
+                        date_2.append(record.id)
                             
-                        else:
-                            record.id = record.id + '_' + date
-                            SeqIO.write(record, f, 'fasta')
+                    SeqIO.write(record, f, 'fasta')
 
 
 # Print length of each sequence group for user.
@@ -115,7 +116,7 @@ for a in range(0, aln_length):
 
     # Ignore Xs (unknowns) and indels - these typically result in empty group lists.
     # Is preferable to focus only on positions that are unambiguous.
-    if '-' or 'X' in pos:
+    if '-' in pos or 'X' in pos:
         continue
 
     # Create empty lists to fill with AAs.
@@ -124,12 +125,9 @@ for a in range(0, aln_length):
 
     # Append AAs to onset list depending on collection date.
     for i, s in enumerate(alignment):
-        split_id = re.split('_', s.id)
-        collection_date = split_id[1]
-
-        if date_boundaries[0] < collection_date < date_boundaries[1]:
+        if s.id in date_1:
             pre_onset.append(pos[i])
-        elif date_boundaries[2] < collection_date < date_boundaries[3]:
+        elif s.id in date_2:
             post_onset.append(pos[i])
 
     # Identify the mode of the first list.
@@ -138,7 +136,7 @@ for a in range(0, aln_length):
 
     # Create a dict of AA frequencies for the list using Counter.
     dict_aa_freqs = Counter(pre_onset)
-
+    
     # Check it is the dominant AA (e.g. >= 50%).
     if dict_aa_freqs[mode] >= 0.5 * len(pre_onset):
         percent_dominance = round(dict_aa_freqs[mode] / len(pre_onset) * 100, 3)
@@ -162,7 +160,7 @@ for a in range(0, aln_length):
         # Compute the probability using FET to determine whether the frequency difference is significant.
         # Note two-sided test is default.
         odds, p_value = stats.fisher_exact([[observed, non_target_observed], [target_not_observed, remainder_not_observed]])
-    
+
         # Print results with AA percentages for context if FET returns significant result.
         if p_value <= 0.05:
             print('Pre onset dominant AA: %s (percent dominance: %f). Post onset is %f percent %s at this position (%i). FET: %f' % 
