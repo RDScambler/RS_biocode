@@ -28,7 +28,8 @@ from check_date import check_date_format
 # Use check_date_format to check for and return correct date format.
 # Note: some dates do not include a specific day (YYYY-MM). In these instances they are considered the earliest point in the month.
 date_boundaries = []
-print('Enter two pairs of dates for spike sequence collection (YYYY-MM-DD). Earliest collection date = 2020-01-28.')
+print('Enter two pairs of dates for spike sequence collection (YYYY-MM-DD).') 
+print('Earliest collection date = 2020-01-28, Latest collection date = 2020-10-13.')
 while True:
     answer = input()
     if check_date_format(answer)[0] == True:
@@ -65,7 +66,7 @@ with open(file, 'w') as f:
         for annotation in annotation_list:
 
             # Use continue to avoid KeyError.
-            if 'annotation' not in annotation.keys():
+            if annotation['completeness'] == 'PARTIAL':
                 continue 
             elif record.id == annotation['annotation']['genes'][0]['cds'][0]['protein']['accessionVersion']:
                 loc = annotation['location']['geographicLocation']
@@ -73,7 +74,8 @@ with open(file, 'w') as f:
      
                 # Filter by region and date.
                 # Write to file to be aligned.
-                # Append IDs to date lists in order to check seq group sizes (i.e. length of date lists).
+                # Append IDs to date lists in order to check seq group sizes (i.e. length of date lists), 
+                # and also to separate onset groups when iterating over AA positions. 
                 if len(sys.argv) > 1:
                     if sys.argv[1] in loc and date_boundaries[0] < date < date_boundaries[1]:
                         SeqIO.write(record, f, 'fasta')
@@ -130,28 +132,28 @@ for a in range(0, aln_length):
         elif s.id in date_2:
             post_onset.append(pos[i])
 
-    # Identify the mode of the first list.
-    mode = max(pre_onset, key = pre_onset.count)
-    mode_2 = max(post_onset, key = post_onset.count)
+    # Identify the mode of each list.
+    mode_pre = max(pre_onset, key = pre_onset.count)
+    mode_post = max(post_onset, key = post_onset.count)
 
     # Create a dict of AA frequencies for the list using Counter.
-    dict_aa_freqs = Counter(pre_onset)
+    dict_aa_freqs_pre = Counter(pre_onset)
     
     # Check it is the dominant AA (e.g. >= 50%).
-    if dict_aa_freqs[mode] >= 0.5 * len(pre_onset):
-        percent_dominance = round(dict_aa_freqs[mode] / len(pre_onset) * 100, 3)
+    if dict_aa_freqs_pre[mode_pre] >= 0.5 * len(pre_onset):
+        percent_dominance = round(dict_aa_freqs_pre[mode_pre] / len(pre_onset) * 100, 3)
     
         # Specify relevant values for Fisher's exact test.
         # Create a new dict for the second list and index using the mode from the first.
-        dict_aa_freqs_2 = Counter(post_onset)
+        dict_aa_freqs_post = Counter(post_onset)
 
         # Obtain the frequency of pre onset dominant AA in post onset seqs.
         # Obtain the non-dominant remainder (for FET).
-        observed = dict_aa_freqs_2[mode]
+        observed = dict_aa_freqs_post[mode_pre]
         non_target_observed = len(post_onset) - observed
 
         # Obtain inverse values for FET.
-        target_not_observed = dict_aa_freqs[mode]
+        target_not_observed = dict_aa_freqs_pre[mode_pre]
         remainder_not_observed = len(pre_onset) - target_not_observed
 
         # Calculate the percent which dominant AA from first list makes up the second.
@@ -160,16 +162,16 @@ for a in range(0, aln_length):
         # Compute the probability using FET to determine whether the frequency difference is significant.
         # Note two-sided test is default.
         odds, p_value = stats.fisher_exact([[observed, non_target_observed], [target_not_observed, remainder_not_observed]])
-
+        
         # Print results with AA percentages for context if FET returns significant result.
         if p_value <= 0.05:
             print('Pre onset dominant AA: %s (percent dominance: %f). Post onset is %f percent %s at this position (%i). FET: %f' % 
-            (mode, percent_dominance, percent_comprised_2, mode, a, p_value))
+            (mode_pre, percent_dominance, percent_comprised_2, mode_pre, a, p_value))
             
             # Determine if the post onset group has a different dominant AA.
-            if dict_aa_freqs_2[mode_2] >= 0.5 * len(post_onset):
-                percent_dominance_2 = round(dict_aa_freqs_2[mode_2] / len(post_onset) * 100, 3)
-                print('%s is the dominant post onset AA at this position (%i). Percent dominance: %f.' % (mode_2, a, percent_dominance_2))
+            if dict_aa_freqs_post[mode_post] >= 0.5 * len(post_onset):
+                percent_dominance_2 = round(dict_aa_freqs_post[mode_post] / len(post_onset) * 100, 3)
+                print('%s is the dominant post onset AA at this position (%i). Percent dominance: %f.' % (mode_post, a, percent_dominance_2))
 
-# Spike is highly conserved. Can I expand search to entire COVID genome?
-# Should be fairly trivial in theory - all record IDs and annotation map the same (I think).
+
+# Spike is highly conserved. Could I expand search to entire COVID genome?
