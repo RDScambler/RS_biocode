@@ -19,4 +19,3 @@ def check_date_format(input_date):
         return is_valid_date, ValueError('This is not a valid date format. Use the format YYYY-MM-DD.')
 
 
-

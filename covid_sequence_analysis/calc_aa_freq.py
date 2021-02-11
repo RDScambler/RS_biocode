@@ -42,8 +42,8 @@ while True:
 
 # Access data file containing all SARS-COV-2 spike protein data isolated from human hosts in Europe.
 # Also access annotations file (cannot access necessary data from seq object unfortunately).
-data = '/mnt/c/Users/scamb/Documents/Programming/covid/spike_europe_data/ncbi_dataset/data/protein.gpff'
-annotation_file = '/mnt/c/Users/scamb/Documents/Programming/covid/spike_europe_data/ncbi_dataset/data/data_report.jsonl'
+data = '/mnt/c/Users/scamb/Documents/Projects/covid/spike_europe_data/ncbi_dataset/data/protein.gpff'
+annotation_file = '/mnt/c/Users/scamb/Documents/Projects/covid/spike_europe_data/ncbi_dataset/data/data_report.jsonl'
 
 # Generate list of annotation data.
 # json.loads is ideal for data in this format.
